@@ -1,0 +1,123 @@
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Demo: Jackpot Site</title>
+        
+        <link rel="stylesheet" href="styles/style.css">
+
+        <script src="config.js"></script>
+        
+    </head>
+    <body>
+        <div id="app">
+            <div>
+                <small v-if="user == null"><span class="login" @click="login">Login</span></small>
+                <small v-if="user != null">Account: <b>{{ user }}</b></small>
+            </div>
+            <h1 v-if="game != null">Jackpot #{{ game.id }} (Status: {{GameStatus[game.status]}})</h1>
+
+            <div class="stats" v-if="game != null">
+                <div class="box">
+                    <div class="value">$ {{ (game.worth / 100).toFixed(2) }}</div>
+                    <small>Pot Worth</small>
+                </div>
+                <div class="box">
+                    <div class="value">{{ timeFormat(game.countdown) }}</div>
+                    <small>Time left</small>
+                </div>
+                <div class="box">
+                    <div class="value">{{ getTotalSkins() }}</div>
+                    <small>Total Skins</small>
+                </div>
+                <div class="box">
+                    <div class="value" v-if="game.deposits != null">{{ game.deposits.length }}</div>
+                    <small>Deposits</small>
+                </div>
+                <div class="box depositBtn" @click="openDeposit">
+                    Deposit
+                </div>
+            </div>
+            <h2>Deposits:</h2>
+            <div class="deposits" v-if="game != null">
+                <div v-for="deposit in game.deposits" class="deposit">
+                    <div class="header">{{ deposit.accountName }} ({{deposit.nfts.length}} Items) ($ {{(deposit.worth / 100).toFixed(2)}}) ({{((deposit.worth / game.worth) * 100).toFixed(2)}}%)</div>
+                    <div class="content">
+                        <div v-for="item in deposit.nfts" class="item">
+                            <img v-bind:src="'https://cloudflare-ipfs.com/ipfs/' + item.mdata.img" alt="">
+                            <div class="name">{{ item.mdata.name }}</div>
+                            <div class="price">$ {{ (getPrice(item.mdata.name) / 100).toFixed(2) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h4>History:</h4>
+
+            <div class="pots" v-if="history != null">
+                <div v-for="pot in history" class="pot">
+                    <div class="header">
+                        <img class="avatar" v-bind:src="'https://ui-avatars.com/api/?background=333333&color=FE2F60&size=45&name=' + pot.winner" alt="">
+                        <div class="name"><b class="primary">Pot ($ {{ (pot.worth / 100).toFixed(2) }}) #{{pot.id}}:</b> <a v-bind:href="'https://wax.bloks.io/account/'+pot.winner" target="_blank" rel="noopener noreferrer">{{pot.winner}}</a></div>
+                        <div class="chance">Outcome %: <span class="primary">{{pot.outcome.percent*100}}</span> Winning Ticket: <span class="primary">{{pot.winningTicket}}</span></div>
+                    </div>
+                    <div class="contents">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Items</th>
+                                    <th>Value</th>
+                                    <th>Chance</th>
+                                    <th>Tickets</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="depo in depositsWithTickets(pot.deposits)">
+                                    <td><a v-bind:href="'https://wax.bloks.io/account/'+depo.accountName" target="_blank" rel="noopener noreferrer">{{depo.accountName}}</a></td>
+                                    <td>{{ depo.nfts.length }}</td>
+                                    <td>$ {{ (depo.worth / 100).toFixed(2) }}</td>
+                                    <td>{{ (depo.worth / pot.worth * 100).toFixed(2)  }}%</td>
+                                    <td>{{ depo.tickets.from }}  -  {{ depo.tickets.to }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="footer">
+                        Round Roll: <a v-bind:href="'https://wax.bloks.io/transaction/' + pot.outcome.trx_id" target="_blank" class="hash">{{pot.outcome.data}}</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="popups" v-if="popup != null">
+                <div class="dimmer" @click="closePopup"></div>
+                <div class="popup" id="deposit" v-if="popup == 'deposit'">
+                    <h5 class="title">
+                        Deposit
+                    </h5>
+                    <div class="content">
+                        <div class="items">
+                            <div v-for="item in inventory" v-bind:class="'item clickable ' + (selectedItems.includes(item.id) ? 'selected' : '')" @click="selectItem(item.id)">
+                                <img v-bind:src="'https://cloudflare-ipfs.com/ipfs/' + item.mdata.img" alt="">
+                                <div class="name">{{ item.mdata.name }}</div>
+                                <div class="price">$ {{ (item.price / 100).toFixed(2) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <span class="btn" @click="deposit">Deposit</span>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="toast" @click="hideToast" v-if="toast" v-bind:style="'border-color: ' + toast.color">{{ toast.text }}</div>
+        </div>
+
+        <script src="scripts/wax.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
+        <script src="scripts/jackpot.js"></script>
+    </body>
+</html>
